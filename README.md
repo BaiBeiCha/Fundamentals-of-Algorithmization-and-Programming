@@ -1,1 +1,1 @@
-# Fundamentals-of-Algorithmization-and-Programming
+# Лабы по ОАИП БГУИР ИЭФ ИСИТ 5 вариант
