@@ -26,7 +26,7 @@ const int maxReadersAmount = 50;
 int currentReadersAmount = 0;
 int currentReader = -1;
 
-const char readersFilePath[] = "readers.dat";
+const char readersFilePath[] = "data\\readers.dat";
 
 struct Date
 {
@@ -525,7 +525,7 @@ void ex1()
 	const int lineLength = 100;
 
 	FILE *f1, *f2;
-	if ((fopen_s(&f1, "f1.txt", "w+t") != 0) || (fopen_s(&f2, "f2.txt", "w+t") != 0))
+	if ((fopen_s(&f1, "data\\f1.txt", "w+t") != 0) || (fopen_s(&f2, "data\\f2.txt", "w+t") != 0))
 	{
 		printf("Невозможно открыть файл \n");  
 		return;
