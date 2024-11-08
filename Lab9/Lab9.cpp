@@ -51,7 +51,7 @@ struct Reader
 	Book books[maxBooksAmount];
 };
 
-struct Reader readers[maxReadersAmount];
+Reader readers[maxReadersAmount];
 
 void passNullChar()
 {
@@ -104,7 +104,7 @@ void readReaders()
 		return;
 	}
 
-	fread(readers, sizeof(struct Reader), currentReadersAmount, file);
+	fread(readers, sizeof(Reader), currentReadersAmount, file);
 	fclose(file);
 
 	printf("Успешно считано!\n");
@@ -119,19 +119,19 @@ bool save()
 	}
 
 	fwrite(&currentReadersAmount, sizeof(int), 1, file);
-	fwrite(readers, sizeof(struct Reader), currentReadersAmount, file);
+	fwrite(readers, sizeof(Reader), currentReadersAmount, file);
 	fclose(file);
 
 	fclose(file);
 	return true;
 }
 
-void setFieldName(char* sn, char* newsn)
+void setField(char* field, char* newfield)
 {
-	strcpy_s(sn, strlen(newsn) + 1, newsn);
+	strcpy_s(field, strlen(newfield) + 1, newfield);
 }
 
-void getFieldName(const char* message, char* buf, int length)
+void getField(const char* message, char* buf, int length)
 {
 	printf("%s", message);
 	fgets(buf, length, stdin);
@@ -142,15 +142,13 @@ Book getBook()
 {
 	Book newBook = {};
 
-	getFieldName("Введите название книги: ", newBook.bookTitle, nameLength);
+	getField("Введите название книги: ", newBook.bookTitle, nameLength);
 
 	int d, m, y;
 	printf("Введите дату в формате:\nдень месяц год:\n");
-	scanf_s("%d%d%d", &d, &m, &y);
-	newBook.returnDate.day = d;
-	newBook.returnDate.month = m;
-	newBook.returnDate.year = y;
-
+	scanf_s("%d%d%d", &newBook.returnDate.day,
+		&newBook.returnDate.month,
+		&newBook.returnDate.year);
 	printf("\n");
 
 	return newBook;
@@ -158,12 +156,12 @@ Book getBook()
 
 Reader getReader(int i)
 {
-	struct Reader reader;
+	Reader reader;
 
 	passNullChar();
-	getFieldName("Введите фамилию: ", reader.surname, nameLength);
-	getFieldName("Введите имя: ", reader.name, nameLength);
-	getFieldName("Введите отчество: ", reader.patronymic, nameLength);
+	getField("Введите фамилию: ", reader.surname, nameLength);
+	getField("Введите имя: ", reader.name, nameLength);
+	getField("Введите отчество: ", reader.patronymic, nameLength);
 
 	printf("Введите количество книг: ");
 	scanf_s("%d", &reader.currentBooksAmount);
@@ -239,12 +237,12 @@ void addReadersArray()
 	}
 }
 
-void sortReaders()
+void sortReadersBySurname()
 {
 	for (int i = 0; i < currentReadersAmount - 1; i++) {
 		for (int j = i + 1; j < currentReadersAmount; j++) {
 			if ((strcoll(readers[i].surname, readers[j].surname) > 0)) {
-				struct Reader temp = readers[i];
+				Reader temp = readers[i];
 				readers[i] = readers[j];
 				readers[j] = temp;
 			}
@@ -254,7 +252,22 @@ void sortReaders()
 	save();
 }
 
-int find(char par[nameLength])
+void sortReadersByID()
+{
+	for (int i = 0; i < currentReadersAmount - 1; i++) {
+		for (int j = i + 1; j < currentReadersAmount; j++) {
+			if (readers[i].ID > readers[j].ID) {
+				Reader temp = readers[i];
+				readers[i] = readers[j];
+				readers[j] = temp;
+			}
+		}
+	}
+
+	save();
+}
+
+int find(char* par)
 {
 	for (int i = 0; i < currentReadersAmount; i++)
 	{
@@ -298,13 +311,13 @@ void editReader()
 	switch (choice)
 	{
 	case 1:
-		getFieldName("Введите новую фамилию: ", readers[currentReader].surname, nameLength);
+		getField("Введите новую фамилию: ", readers[currentReader].surname, nameLength);
 		break;
 	case 2:
-		getFieldName("Введите новое имя: ", readers[currentReader].name, nameLength);
+		getField("Введите новое имя: ", readers[currentReader].name, nameLength);
 		break;
 	case 3:
-		getFieldName("Введите новое отчество: ", readers[currentReader].patronymic, nameLength);
+		getField("Введите новое отчество: ", readers[currentReader].patronymic, nameLength);
 		break;
 	case 4:
 		int num;
@@ -394,10 +407,8 @@ void editReaders()
 	switch (command)
 	{
 	case 1:
-		printf("Введите фамилию/имя/отчество/название книги: ");
 		char name[nameLength];
-		fgets(name, nameLength, stdin);
-		name[strcspn(name, "\n")] = 0;
+		getField("Введите фамилию/имя/отчество/название книги: ", name, nameLength);
 		currentReader = find(name);
 		break;
 	case 2:
@@ -414,6 +425,7 @@ void editReaders()
 
 	if (currentReader == -1)
 	{
+		printf("Читатель не найден!\n");
 		return;
 	}
 
@@ -489,7 +501,24 @@ bool ex2Menu()
 		}
 		break;
 	case 2:
-		sortReaders();
+		int sortType;
+		printf("Выберете тип сортировки:\n");
+		printf("1 - Сортировка по ID;\n");
+		printf("2 - Сортировка по фамилии.\n");
+		scanf_s("%d", &sortType);
+
+		switch (sortType) {
+		case 1:
+			sortReadersByID();
+			break;
+		case 2:
+			sortReadersBySurname();
+			printReaders();
+			break;
+		default:
+			printf("Неверная команда!\n");
+			break;
+		}
 		printReaders();
 		break;
 	case 3:
