@@ -17,9 +17,11 @@
 добавление, поиск элементов и выбор желаемого действия оформить в виде функций. 
 Предусмотреть сообщения об ошибках при открытии файла и выполнении 
 операций ввода/вывода.
-5.	Структура «Читатель»: фамилия, имя, отчество; номер читательского билета; название книги; срок возврата.*/
+5.	Структура «Читатель»: фамилия, имя, отчество; номер читательского билета; название книги; срок возврата.
 
-//Структура «Читатель»: фамилия, имя, отчество; номер читательского билета; название книги; срок возврата.
+Доп к 8: 
+	поиск читателя по первой букве фамилии и количество книг или поиск про 2 параметрам**/
+
 const int nameLength = 50;
 const int maxBooksAmount = 10;
 const int maxReadersAmount = 50;
@@ -28,20 +30,39 @@ int currentReader = -1;
 
 const char readersFilePath[] = "data\\readers.dat";
 
-struct Date
+bool IDFilter = false,
+	surnameFirstLetterFilter = false,
+	nameFirstLetterFilter = false,
+	patronymicFirstLetterFilter = false,
+	booksAmountFilter = false;
+
+int IDdefault = maxReadersAmount,
+	IDstart = 0,
+	BOOKSdefault = maxBooksAmount,
+	IDend = IDdefault,
+	BOOKSstart = 0,
+	BOOKSend = BOOKSdefault,
+	lastReaderNum = -1,
+	filteredReadersCurrentAmountBuff = 0;
+
+char surnameFirst = ' ',
+	nameFirst = ' ',
+	patronymicFirst = ' ';
+
+typedef struct Date
 {
 	int day;
 	int month;
 	int year;
 };
 
-struct Book
+typedef struct Book
 {
 	char bookTitle[nameLength];
 	Date returnDate;
 };
 
-struct Reader
+typedef struct Reader
 {
 	int ID;
 	char surname[nameLength];
@@ -53,11 +74,28 @@ struct Reader
 
 Reader readers[maxReadersAmount];
 
+Reader filtredReaders[maxReadersAmount];
+int filteredReadersCurrentAmount = 0;
+
 void passNullChar()
 {
 	char* nullChar = (char*)malloc(sizeof(char));
 	gets_s(nullChar, 1);
 	free(nullChar);
+}
+
+char getChar()
+{
+	char c;
+	scanf_s("%c", &c, 1);
+	return c;
+}
+
+int getInt()
+{
+	int a;
+	scanf_s("%d", &a);
+	return a;
 }
 
 void printBookInfo(Book book)
@@ -66,14 +104,45 @@ void printBookInfo(Book book)
 		book.bookTitle, book.returnDate.day, book.returnDate.month, book.returnDate.year);
 }
 
+void printFilteredReaderInfo(int i)
+{
+	printf("Читатель ID: %d\nФИО: %s %s %s\n",
+		filtredReaders[i].ID, filtredReaders[i].surname,
+		filtredReaders[i].name, filtredReaders[i].patronymic);
+
+	if (filtredReaders[i].currentBooksAmount > 0)
+	{
+		printf("Книги: %d\n", filtredReaders[i].currentBooksAmount);
+		for (int j = 0; j < filtredReaders[i].currentBooksAmount; j++)
+		{
+			printf("Книга No%d:\n", (j + 1));
+			printBookInfo(filtredReaders[i].books[j]);
+		}
+	}
+	else
+	{
+		printf("Книг нет\n");
+	}
+}
+
 void printReaderInfo(int i)
 {
-	printf("Читатель ID: %d\nФИО: %s %s %s\nКниги:\n",
-		readers[i].ID, readers[i].surname, readers[i].name, readers[i].patronymic);
-	for (int j = 0; j < readers[i].currentBooksAmount; j++)
+	printf("Читатель ID: %d\nФИО: %s %s %s\n",
+		readers[i].ID, readers[i].surname,
+		readers[i].name, readers[i].patronymic);
+
+	if (readers[i].currentBooksAmount > 0)
 	{
-		printf("Книга No%d:\n", (j + 1));
-		printBookInfo(readers[i].books[j]);
+		printf("Книги: %d\n", readers[i].currentBooksAmount);
+		for (int j = 0; j < readers[i].currentBooksAmount; j++)
+		{
+			printf("Книга No%d:\n", (j + 1));
+			printBookInfo(readers[i].books[j]);
+		}
+	}
+	else
+	{
+		printf("Книг нет\n");
 	}
 }
 
@@ -83,6 +152,18 @@ void printReaders()
 	for (int i = 0; i < currentReadersAmount; i++)
 	{
 		printReaderInfo(i);
+
+		if (i < currentReadersAmount - 1)
+			printf("\n");
+	}
+}
+
+void printFilteredReaders()
+{
+	printf("Читатели:\n");
+	for (int i = 0; i < filteredReadersCurrentAmount; i++)
+	{
+		printFilteredReaderInfo(i);
 
 		if (i < currentReadersAmount - 1)
 			printf("\n");
@@ -156,7 +237,7 @@ Book getBook()
 
 Reader getReader(int i)
 {
-	Reader reader;
+	Reader reader = {};
 
 	passNullChar();
 	getField("Введите фамилию: ", reader.surname, nameLength);
@@ -181,6 +262,8 @@ Reader getReader(int i)
 	}
 
 	reader.ID = i;
+
+	printf("\n");
 	return reader;
 }
 
@@ -211,6 +294,7 @@ void getReadersArray()
 	}
 
 	save();
+	printf("\n");
 }
 
 void addReadersArray()
@@ -235,6 +319,8 @@ void addReadersArray()
 	{
 		printf("Слишком много читателей!\n");
 	}
+
+	printf("\n");
 }
 
 void sortReadersBySurname()
@@ -299,12 +385,12 @@ void editReader()
 {
 	int choice;
 	printf("Выберите, что хотите изменить:\n");
-	printf("1 - Изменение фамилии;\n");
-	printf("2 - Изменение имени;\n");
-	printf("3 - Изменение отчества;\n");
-	printf("4 - Изменение книги;\n");
-	printf("5 - Добавить книгу;");
-	printf("6 - Отмена.\n");
+	printf("1 - Изменение фамилии\n");
+	printf("2 - Изменение имени\n");
+	printf("3 - Изменение отчества\n");
+	printf("4 - Изменение книги\n");
+	printf("5 - Добавить книгу");
+	printf("6 - Отмена\n");
 	scanf_s("%d", &choice);
 	passNullChar();
 
@@ -355,9 +441,10 @@ void editReader()
 	}
 
 	save();
+	printf("\n");
 }
 
-void deleteReader()
+void deleteCurrentReader()
 {
 	for (int i = currentReader; i < currentReadersAmount - 1; i++) {
 		readers[i] = readers[i + 1];
@@ -374,9 +461,9 @@ bool editMenu()
 	printf("\n");
 	int choice;
 	printf("Выберете действие: \n");
-	printf("1 - Изменение заданной структуры;\n");
-	printf("2 - Удаление структуры из массива;\n");
-	printf("3 - Выход.\n");
+	printf("1 - Изменение заданной структуры\n");
+	printf("2 - Удаление структуры из массива\n");
+	printf("3 - Выход\n");
 	scanf_s("%d", &choice);
 
 	switch (choice)
@@ -385,7 +472,7 @@ bool editMenu()
 		editReader();
 		break;
 	case 2:
-		deleteReader();
+		deleteCurrentReader();
 		break;
 	case 3:
 		return false;
@@ -393,6 +480,8 @@ bool editMenu()
 		printf("Неверная команда!\n");
 		break;
 	}
+
+	printf("\n");
 }
 
 void editReaders()
@@ -438,6 +527,197 @@ void editReaders()
 
 		printf("\n");
 	}
+
+	printf("\n");
+}
+
+void printCondition(bool condition)
+{
+	if (condition)
+	{
+		printf("+\n");
+	}
+	else 
+	{
+		printf("-\n");
+	}
+}
+
+void changeCondition(bool* condition)
+{
+	*condition = !(*condition);
+}
+
+void checkSection(int* a, int* b, int min, int max)
+{
+	if (*a > *b)
+	{
+		int c = *a;
+		*a = *b;
+		*b = c;
+	}
+
+	if (*a < min)
+	{
+		*a = min;
+	}
+
+	if (*b > max)
+	{
+		*b = max;
+	}
+}
+
+//поиск читателя по первой букве фамилии и количество книг или поиск про 2 параметрам
+void filterMenu()
+{
+	while (true)
+	{
+		printf("Выберете действие: \n");
+		printf("Изменить фильтры:\n");
+		printf(" 1 - По фамилии\t\t\t");
+		printCondition(surnameFirstLetterFilter);
+		printf(" 2 - По имени\t\t\t");
+		printCondition(nameFirstLetterFilter);
+		printf(" 3 - По отчеству\t\t");
+		printCondition(patronymicFirstLetterFilter);
+		printf(" 4 - По ID\t\t\t");
+		printCondition(IDFilter);
+		printf(" 5 - По количеству книг\t\t");
+		printCondition(booksAmountFilter);
+		printf("6 - Сбросить фильтры\n");
+		printf("7 - Применить\n");
+		printf("8 - Изменить\n");
+		printf("9 - Выход\n");
+		int command = getInt();
+		passNullChar();
+
+		switch (command)
+		{
+		case 1:
+			changeCondition(&surnameFirstLetterFilter);
+
+			if (surnameFirstLetterFilter)
+			{
+				printf("Введите букву для поиска: \n");
+				surnameFirst = getChar();
+			}
+
+			break;
+		case 2:
+			changeCondition(&nameFirstLetterFilter);
+
+			if (nameFirstLetterFilter)
+			{
+				printf("Введите букву для поиска: \n");
+				nameFirst = getChar();
+			}
+
+			break;
+		case 3:
+			changeCondition(&patronymicFirstLetterFilter);
+
+			if (patronymicFirstLetterFilter)
+			{
+				printf("Введите букву для поиска: \n");
+				patronymicFirst = getChar();
+			}
+
+			break;
+		case 4:
+			changeCondition(&IDFilter);
+
+			if (IDFilter)
+			{
+				printf("Введите промежуток для 'ID': ");
+				IDstart = getInt();
+				IDend = getInt();
+				checkSection(&IDstart, &IDend, 0, IDdefault);
+				passNullChar();
+			}
+
+			break;
+		case 5:
+			changeCondition(&booksAmountFilter);
+
+			if (booksAmountFilter)
+			{
+				printf("Введите промежуток для 'Количество книг': ");
+				BOOKSstart = getInt();
+				BOOKSend = getInt();
+				checkSection(&BOOKSstart, &BOOKSend, 0, BOOKSdefault);
+				passNullChar();
+			}
+
+			break;
+		case 6:
+			surnameFirstLetterFilter = false;
+			nameFirstLetterFilter = false;
+			patronymicFirstLetterFilter = false;
+			IDFilter = false;
+			booksAmountFilter = false;
+
+			IDstart = 0;
+			IDend = IDdefault;
+			BOOKSstart = 0;
+			BOOKSend = BOOKSdefault;
+			break;
+		case 7:
+			for (int i = 0; i < currentReadersAmount; i++)
+			{
+				Reader readerToAdd = readers[i];
+				bool fits = true;
+
+				if (surnameFirstLetterFilter && readerToAdd.surname[0] != surnameFirst)
+				{
+					fits = false;
+				}
+				else if (nameFirstLetterFilter && readerToAdd.name[0] != nameFirst)
+				{
+					fits = false;
+				} else if (patronymicFirstLetterFilter && readerToAdd.patronymic[0] != patronymicFirst)
+				{
+					fits = false;
+				} else if (readerToAdd.ID < IDstart || readerToAdd.ID > IDend)
+				{
+					fits = false;
+				} else if (readerToAdd.currentBooksAmount < BOOKSstart || readerToAdd.currentBooksAmount > BOOKSend)
+				{
+					fits = false;
+				}
+
+				if (fits)
+				{
+					lastReaderNum++;
+					filtredReaders[lastReaderNum] = readerToAdd;
+					filteredReadersCurrentAmountBuff++;
+				}
+			}
+
+			lastReaderNum = -1;
+			filteredReadersCurrentAmount = filteredReadersCurrentAmountBuff;
+
+			printFilteredReaders();
+			if (filteredReadersCurrentAmount < 1)
+			{
+				printf("Читателей, соотвествующих заданным критериям, нет!\n");
+			}
+
+			filteredReadersCurrentAmountBuff = 0;
+			filteredReadersCurrentAmount = 0;
+			break;
+		case 8:
+			editReaders();
+			break;
+		case 9:
+			return;
+		default:
+			printf("Неверная команда!\n");
+			break;
+		}
+
+		printf("\n");
+	}
 }
 
 /*Сформировать бинарный файл из элементов, заданной в варианте структуры, 
@@ -446,17 +726,20 @@ void editReaders()
 по государственному номеру, по году рождения и т.д.). Формирование, печать, 
 добавление, поиск элементов и выбор желаемого действия оформить в виде функций. 
 Предусмотреть сообщения об ошибках при открытии файла и выполнении 
-операций ввода/вывода.*/
+операций ввода/вывода.
+
+поиск читателя по первой букве фамилии и количество книг или поиск про 2 параметрам*/
 bool ex2Menu()
 {
 	int command;
 	printf("Выберете действие: \n");
-	printf("1 - Ввод массива структур;\n");
-	printf("2 - Cортировка массива структур;\n");
-	printf("3 - Поиск в массиве структур по заданному параметру;\n");
-	printf("4 - Вывод на экран массива структур;\n");
-	printf("5 - Сохранить;\n");
-	printf("6 - Выход.\n");
+	printf("1 - Ввод\n");
+	printf("2 - Cортировка\n");
+	printf("3 - Редактирование\n");
+	printf("4 - Вывод на экран\n");
+	printf("5 - Фильтры\n");
+	printf("6 - Сохранить\n");
+	printf("7 - Выход\n");
 	scanf_s("%d", &command);
 
 	switch (command)
@@ -464,8 +747,8 @@ bool ex2Menu()
 	case 1:
 		int choice;
 		printf("Выберете действие: \n");
-		printf("1 - Ввод массива структур;\n");
-		printf("2 - Добавить массив структур.\n");
+		printf("1 - Ввести новый массив\n");
+		printf("2 - Добавить массив\n");
 		scanf_s("%d", &choice);
 
 		switch (choice)
@@ -473,8 +756,8 @@ bool ex2Menu()
 		case 1:
 			int cm;
 			printf("Выберете действие: \n");
-			printf("1 - Ввод массива структур из консоли;\n");
-			printf("2 - Ввод массива структур из файла.\n");
+			printf("1 - Ввод массива из консоли\n");
+			printf("2 - Ввод массива из файла\n");
 			scanf_s("%d", &cm);
 
 			switch (cm) {
@@ -503,8 +786,8 @@ bool ex2Menu()
 	case 2:
 		int sortType;
 		printf("Выберете тип сортировки:\n");
-		printf("1 - Сортировка по ID;\n");
-		printf("2 - Сортировка по фамилии.\n");
+		printf("1 - Сортировка по ID\n");
+		printf("2 - Сортировка по фамилии\n");
 		scanf_s("%d", &sortType);
 
 		switch (sortType) {
@@ -528,6 +811,9 @@ bool ex2Menu()
 		printReaders();
 		break;
 	case 5:
+		filterMenu();
+		break;
+	case 6:
 		if (save())
 		{
 			printf("Успешно сохранено!\n");
@@ -537,12 +823,13 @@ bool ex2Menu()
 			printf("Сохранить не удалось!\n");
 		}
 		break;
-	case 6:
+	case 7:
 		return true;
 	default:
 		printf("Неверная комманда!\n");
 	}
 
+	printf("\n");
 	return false;
 }
 
@@ -586,17 +873,19 @@ void ex1()
 		free(line);
 	}
 
+	printf("Успешно выполненно!\n");
 	fclose(f1);
 	fclose(f2);
+	printf("/n");
 }
 
 bool mainMenu()
 {
 	int command;
 	printf("Выберете действие: \n");
-	printf("1 - Задание 1;\n");
-	printf("2 - Задание 2;\n");
-	printf("3 - Выход.\n");
+	printf("1 - Задание 1\n");
+	printf("2 - Задание 2\n");
+	printf("3 - Выход\n");
 	scanf_s("%d", &command);
 
 	switch (command)
@@ -621,6 +910,8 @@ bool mainMenu()
 		printf("Неверная команда!\n");
 		break;
 	}
+
+	printf("\n");
 	return false;
 }
 
