@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 /*	Задание 1
 Разработать программу с использованием файлов в соответствии с вариантом.
@@ -20,7 +21,9 @@
 5.	Структура «Читатель»: фамилия, имя, отчество; номер читательского билета; название книги; срок возврата.
 
 Доп к 8: 
-	поиск читателя по первой букве фамилии и количество книг или поиск про 2 параметрам**/
+	поиск читателя по первой букве фамилии и количество книг или поиск про 2 параметрам*
+	
+	2 файла 1мерные массивы чисел в 3 файл сууму чисел*/
 
 const int nameLength = 50;
 const int maxBooksAmount = 10;
@@ -201,7 +204,6 @@ bool save()
 
 	fwrite(&currentReadersAmount, sizeof(int), 1, file);
 	fwrite(readers, sizeof(Reader), currentReadersAmount, file);
-	fclose(file);
 
 	fclose(file);
 	return true;
@@ -843,13 +845,17 @@ void ex1()
 	FILE *f1, *f2;
 	if ((fopen_s(&f1, "data\\f1.txt", "w+t") != 0) || (fopen_s(&f2, "data\\f2.txt", "w+t") != 0))
 	{
-		printf("Невозможно открыть файл \n");  
+		printf("Невозможно открыть файл\n");  
 		return;
 	}
 
 	for (int i = 1; i <= lines; i++)
 	{
-		fprintf(f1, "Строка No%d\n", i);
+		fprintf(f1, "Строка No%d", i);
+		if (i < lines)
+		{
+			fprintf(f1, "\n");
+		}
 	}
 
 	rewind(f1);
@@ -876,7 +882,117 @@ void ex1()
 	printf("Успешно выполненно!\n");
 	fclose(f1);
 	fclose(f2);
-	printf("/n");
+	printf("\n");
+}
+
+int random(int min, int max) {
+	return min + rand() % (max - min + 1);
+}
+
+bool fillArrays(FILE* farray1, FILE* farray2, int* lines) {
+	printf("Введите размерность массивов: ");
+	if (scanf_s("%d", lines) != 1 || *lines <= 0) {
+		printf("Некорректный ввод!\n");
+		return false;
+	}
+
+	printf("Введите вариант заполнения массивов:\n1 - Случайные числа\n2 - Вручную\n");
+	int com;
+	if (scanf_s("%d", &com) != 1 || (com != 1 && com != 2)) {
+		printf("Некорректная команда!\n");
+		return false;
+	}
+
+	switch (com) {
+	case 1:
+		for (int i = 0; i < *lines; i++) {
+			fprintf(farray1, "%d", random(-100, 100));
+			fprintf(farray2, "%d", random(-100, 100));
+			if (i != *lines - 1)
+			{
+				fprintf(farray1, "\n");
+				fprintf(farray2, "\n");
+			}
+		}
+		break;
+
+	case 2:
+		for (int i = 0; i < *lines; i++) {
+			int num;
+			printf("Введите элемент %d массива 1: ", i + 1);
+			if (scanf_s("%d", &num) != 1) {
+				printf("Некорректный ввод!\n");
+				return false;
+			}
+			fprintf(farray1, "%d\n", num);
+			if (i != *lines - 1)
+			{
+				fprintf(farray1, "\n");
+			}
+		}
+		for (int i = 0; i < *lines; i++) {
+			int num;
+			printf("Введите элемент %d массива 2: ", i + 1);
+			if (scanf_s("%d", &num) != 1) {
+				printf("Некорректный ввод!\n");
+				return false;
+			}
+			fprintf(farray2, "%d", num);
+			if (i != *lines - 1)
+			{
+				fprintf(farray2, "\n");
+			}
+		}
+		break;
+
+	default:
+		printf("Неверная команда!\n");
+		return false;
+	}
+
+	return true;
+}
+
+int filesum(FILE* farray1, FILE* farray2, FILE* fsum, int lines) {
+	rewind(farray1);
+	rewind(farray2);
+
+	int sum = 0;
+	for (int i = 0; i < lines; i++) {
+		int num1, num2;
+		fscanf_s(farray1, "%d", &num1);
+		sum += num1;
+		fscanf_s(farray2, "%d", &num2);
+		sum += num2;
+		fprintf(fsum, "%d\n", (num1 + num2));
+	}
+	fprintf(fsum, "\n\n\nsum: %d", sum);
+	return sum;
+}
+
+void dop()
+{
+	FILE * farray1, * farray2, * fsum;
+	int lines;
+
+	if ((fopen_s(&farray1, "data\\farray1.txt", "w+t") != 0)
+		|| (fopen_s(&farray2, "data\\farray2.txt", "w+t") != 0)
+		|| (fopen_s(&fsum, "data\\sum.txt", "w+t") != 0))
+	{
+		printf("Невозможно открыть файл\n");
+		return;
+	}
+
+	while (!fillArrays(farray1, farray2, &lines)) {
+		printf("Попробуйте снова!\n");
+	}
+
+	int sum = filesum(farray1, farray2, fsum, lines);
+	printf("Сумма: %d\n", sum);
+
+	fclose(farray1);
+	fclose(farray2);
+	fclose(fsum);
 }
 
 bool mainMenu()
@@ -885,7 +1001,8 @@ bool mainMenu()
 	printf("Выберете действие: \n");
 	printf("1 - Задание 1\n");
 	printf("2 - Задание 2\n");
-	printf("3 - Выход\n");
+	printf("3 - Дополнительное задание\n");
+	printf("4 - Выход\n");
 	scanf_s("%d", &command);
 
 	switch (command)
@@ -905,6 +1022,9 @@ bool mainMenu()
 		}
 		break;
 	case 3:
+		dop();
+		break;
+	case 4:
 		return true;
 	default:
 		printf("Неверная команда!\n");
